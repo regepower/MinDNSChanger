@@ -1,9 +1,11 @@
 package de.regepower.mindnschanger
 
 import android.content.Context
+import android.content.SharedPreferences
 
 class Prefs(context: Context) {
-    private val sp = context.getSharedPreferences("mindns", Context.MODE_PRIVATE)
+    /** Raw store, also used for config export/import. */
+    val sp: SharedPreferences = context.getSharedPreferences("mindns", Context.MODE_PRIVATE)
 
     /** Name of the selected DNS entry. */
     var selected: String

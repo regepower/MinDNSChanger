@@ -9,5 +9,5 @@
     <color name="md_outline">@android:color/system_neutral2_500</color>
     <color name="md_error_container">#FFDAD6</color>
     <color name="md_on_error_container">#410002</color>
-    <color name="ic_launcher_background">#B10010</color>
+    <color name="ic_launcher_background">#5B2A86</color>
 </resources>

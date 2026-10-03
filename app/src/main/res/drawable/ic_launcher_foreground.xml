@@ -4,22 +4,22 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Filled shield up to the r=33 safe zone; globe in the background colour, enlarged 1.3x. -->
+    <path
+        android:fillColor="#FFC857"
+        android:pathData="M54,25 L77,33 L77,53 C77,68 67,79 54,84 C41,79 31,68 31,53 L31,33 Z"
+        android:strokeColor="#FFC857"
+        android:strokeLineJoin="round"
+        android:strokeWidth="4" />
     <group
         android:pivotX="54"
-        android:pivotY="54"
-        android:scaleX="0.92"
-        android:scaleY="0.92">
-        <!-- Shield with globe: DNS protection. Kept inside the r=33 safe zone. -->
-        <path
-            android:fillColor="#00000000"
-            android:pathData="M54,25 L77,33 L77,53 C77,68 67,79 54,84 C41,79 31,68 31,53 L31,33 Z"
-            android:strokeColor="#FFC857"
-            android:strokeLineJoin="round"
-            android:strokeWidth="5" />
+        android:pivotY="53"
+        android:scaleX="1.3"
+        android:scaleY="1.3">
         <path
             android:fillColor="#00000000"
             android:pathData="M42,53 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 M42,53 H66 M54,41 a5.5,12 0 1,0 0,24 a5.5,12 0 1,0 0,-24"
-            android:strokeColor="#FFFFFF"
-            android:strokeWidth="3" />
+            android:strokeColor="@color/ic_launcher_background"
+            android:strokeWidth="2.6" />
     </group>
 </vector>

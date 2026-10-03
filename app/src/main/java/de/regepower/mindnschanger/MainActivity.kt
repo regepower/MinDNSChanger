@@ -5,31 +5,32 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
-import android.text.SpannableString
-import android.text.Spanned
 import android.text.method.DigitsKeyListener
-import android.text.style.RelativeSizeSpan
-import android.view.View
+import android.util.Log
+import android.view.Gravity
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.LinearLayout
-import android.widget.RadioButton
-import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
+import java.io.IOException
 
 class MainActivity : Activity() {
     private lateinit var prefs: Prefs
     private lateinit var status: TextView
     private lateinit var toggle: Button
-    private lateinit var servers: RadioGroup
+    private lateinit var serverName: TextView
+    private lateinit var serverAddr: TextView
+    private lateinit var deleteBtn: ImageButton
     private lateinit var appsBtn: Button
     private lateinit var appsMode: TextView
     private val listener: () -> Unit = { renderState() }
@@ -40,8 +41,17 @@ class MainActivity : Activity() {
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(px(16), px(12), px(16), px(16))
+            setPadding(px(16), px(8), px(16), px(16))
         }
+
+        content.addView(
+            appHeader(
+                iconButton(R.drawable.ic_save, getString(R.string.cfg_save)) { saveConfig() },
+                iconButton(R.drawable.ic_load, getString(R.string.cfg_load)) { loadConfig() },
+                iconButton(R.drawable.ic_help, getString(R.string.help)) { showHelp() }
+            ),
+            fullWidth()
+        )
 
         // Status + on/off
         val statusCard = card()
@@ -49,16 +59,43 @@ class MainActivity : Activity() {
         statusCard.addView(status)
         toggle = Button(this).apply { setOnClickListener { onToggle() } }
         statusCard.addView(toggle, fullWidth(8))
-        content.addView(statusCard, fullWidth())
+        content.addView(statusCard, fullWidth(8))
 
-        // DNS servers
+        // DNS server: only the active one; tap = choose, + = add, - = delete own entry
         content.addView(header(getString(R.string.header_server)))
-        val serverCard = card()
-        servers = RadioGroup(this)
-        serverCard.addView(servers)
+        val serverCard = card().apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, px(4), px(4), px(4))
+        }
+        val info = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(px(12), px(6), px(8), px(6))
+            setBackgroundResource(rowRipple())
+            tooltipText = getString(R.string.hint_server)
+            setOnClickListener { pickServer() }
+        }
+        serverName = TextView(this).apply {
+            textSize = 17f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        serverAddr = TextView(this).apply {
+            textSize = 13f
+            alpha = 0.7f
+        }
+        info.addView(serverName)
+        info.addView(serverAddr)
+        serverCard.addView(info, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        serverCard.addView(
+            iconButton(R.drawable.ic_add, getString(R.string.btn_add_server)) { addServerDialog() },
+            LinearLayout.LayoutParams(px(44), px(44))
+        )
+        deleteBtn = iconButton(R.drawable.ic_remove, getString(R.string.btn_delete)) {
+            deleteServerDialog(prefs.current())
+        }
+        serverCard.addView(deleteBtn, LinearLayout.LayoutParams(px(44), px(44)))
         content.addView(serverCard, fullWidth())
-        content.addView(hint(getString(R.string.hint_custom)))
-        content.addView(button(getString(R.string.btn_add_server), null) { addServerDialog() }, fullWidth(4))
+        content.addView(hint(getString(R.string.hint_server)))
 
         // App filter
         content.addView(header(getString(R.string.header_apps)))
@@ -99,7 +136,7 @@ class MainActivity : Activity() {
         ) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIFY)
         }
-        fillServers()
+        renderServer()
     }
 
     override fun onResume() {
@@ -119,12 +156,71 @@ class MainActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != REQ_VPN) return
-        if (resultCode == RESULT_OK) {
-            DnsVpnService.start(this)
-        } else {
-            Toast.makeText(this, R.string.err_vpn_denied, Toast.LENGTH_SHORT).show()
+        when (requestCode) {
+            REQ_VPN -> if (resultCode == RESULT_OK) {
+                DnsVpnService.start(this)
+            } else {
+                toast(R.string.err_vpn_denied)
+            }
+            REQ_SAVE -> data?.data?.takeIf { resultCode == RESULT_OK }?.let { writeConfig(it) }
+            REQ_LOAD -> data?.data?.takeIf { resultCode == RESULT_OK }?.let { readConfig(it) }
         }
+    }
+
+    private fun toast(res: Int) = Toast.makeText(this, res, Toast.LENGTH_SHORT).show()
+
+    private fun saveConfig() {
+        val i = Intent(Intent.ACTION_CREATE_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType(ConfigIO.MIME)
+            .putExtra(Intent.EXTRA_TITLE, "${getString(R.string.app_name)}.json")
+        @Suppress("DEPRECATION")
+        startActivityForResult(i, REQ_SAVE)
+    }
+
+    private fun loadConfig() {
+        val i = Intent(Intent.ACTION_OPEN_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType("*/*")
+            .putExtra(Intent.EXTRA_MIME_TYPES, arrayOf(ConfigIO.MIME, "text/plain", "application/octet-stream"))
+        @Suppress("DEPRECATION")
+        startActivityForResult(i, REQ_LOAD)
+    }
+
+    private fun writeConfig(uri: Uri) {
+        try {
+            contentResolver.openOutputStream(uri, "wt")?.use {
+                it.write(ConfigIO.toJson(prefs.sp, getString(R.string.app_name)).toByteArray())
+            }
+            toast(R.string.cfg_saved)
+        } catch (e: IOException) {
+            Log.w("MinDNS", "save config", e)
+            toast(R.string.cfg_error)
+        }
+    }
+
+    private fun readConfig(uri: Uri) {
+        val json = try {
+            contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
+        } catch (e: IOException) {
+            Log.w("MinDNS", "load config", e)
+            null
+        }
+        if (json == null || !ConfigIO.fromJson(prefs.sp, json, getString(R.string.app_name))) {
+            toast(R.string.cfg_invalid)
+            return
+        }
+        toast(R.string.cfg_loaded)
+        if (DnsVpnService.running) DnsVpnService.start(this)
+        recreate()
+    }
+
+    private fun showHelp() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.help)
+            .setMessage(getText(R.string.help_text))
+            .setPositiveButton(R.string.help_ok, null)
+            .show()
     }
 
     /** Switch that stores [save] and re-applies the rules to a running service. */
@@ -172,36 +268,34 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun fillServers() {
-        servers.setOnCheckedChangeListener(null)
-        servers.removeAllViews()
-        val selected = prefs.current().name
-        prefs.servers().forEach { s ->
-            val label = "${s.name}\n${s.addresses}"
-            val text = SpannableString(label).apply {
-                setSpan(RelativeSizeSpan(0.8f), s.name.length + 1, label.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    private fun renderServer() {
+        val s = prefs.current()
+        serverName.text = s.name
+        serverAddr.text = s.addresses
+        deleteBtn.isEnabled = s.custom
+        deleteBtn.alpha = if (s.custom) 1f else 0.3f
+    }
+
+    private fun selectServer(name: String) {
+        prefs.selected = name
+        renderServer()
+        if (DnsVpnService.running) DnsVpnService.start(this)
+    }
+
+    /** List of all servers in a dialog; "Add" opens the form. */
+    private fun pickServer() {
+        val list = prefs.servers()
+        val labels = list.map { "${it.name}  ·  ${it.addresses}" }.toTypedArray()
+        val checked = list.indexOfFirst { it.name == prefs.current().name }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.header_server)
+            .setSingleChoiceItems(labels, checked) { d, which ->
+                selectServer(list[which].name)
+                d.dismiss()
             }
-            val rb = RadioButton(this).apply {
-                id = View.generateViewId()
-                this.text = text
-                textSize = 15f
-                tag = s.name
-                setPadding(px(8), px(6), 0, px(6))
-                if (s.custom) {
-                    setOnLongClickListener {
-                        deleteServerDialog(s)
-                        true
-                    }
-                }
-            }
-            servers.addView(rb)
-            if (s.name == selected) servers.check(rb.id)
-        }
-        servers.setOnCheckedChangeListener { group, checkedId ->
-            val name = group.findViewById<RadioButton>(checkedId)?.tag as? String ?: return@setOnCheckedChangeListener
-            prefs.selected = name
-            if (DnsVpnService.running) DnsVpnService.start(this)
-        }
+            .setNeutralButton(R.string.btn_add_server) { _, _ -> addServerDialog() }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun addServerDialog() {
@@ -251,7 +345,7 @@ class MainActivity : Activity() {
             }
             if (!ok) return@setOnClickListener
             prefs.custom = prefs.custom + DnsServer(n, p, s.ifEmpty { null }, true)
-            fillServers()
+            selectServer(n)
             dialog.dismiss()
         }
     }
@@ -260,13 +354,8 @@ class MainActivity : Activity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.dlg_delete_title, s.name))
             .setPositiveButton(R.string.btn_delete) { _, _ ->
-                val wasSelected = prefs.current().name == s.name
                 prefs.custom = prefs.custom.filter { it.name != s.name }
-                if (wasSelected) {
-                    prefs.selected = DnsServer.PRESETS[0].name
-                    if (DnsVpnService.running) DnsVpnService.start(this)
-                }
-                fillServers()
+                selectServer(DnsServer.PRESETS[0].name)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -275,5 +364,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQ_VPN = 1
         private const val REQ_NOTIFY = 2
+        private const val REQ_SAVE = 3
+        private const val REQ_LOAD = 4
     }
 }
