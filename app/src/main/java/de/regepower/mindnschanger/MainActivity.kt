@@ -11,7 +11,11 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
+import android.text.SpannableString
+import android.text.Spanned
 import android.text.method.DigitsKeyListener
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
 import android.util.Log
 import android.view.Gravity
 import android.widget.Button
@@ -285,7 +289,20 @@ class MainActivity : Activity() {
     /** List of all servers in a dialog; "Add" opens the form. */
     private fun pickServer() {
         val list = prefs.servers()
-        val labels = list.map { "${it.name}  ·  ${it.addresses}" }.toTypedArray()
+        // Name on the first line, both addresses smaller and dimmed below.
+        val labels = list.map { srv ->
+            val text = "${srv.name}\n${srv.addresses}"
+            SpannableString(text).apply {
+                val start = srv.name.length + 1
+                setSpan(RelativeSizeSpan(0.75f), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                setSpan(
+                    ForegroundColorSpan(getColor(R.color.md_outline)),
+                    start,
+                    text.length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }.toTypedArray<CharSequence>()
         val checked = list.indexOfFirst { it.name == prefs.current().name }
         AlertDialog.Builder(this)
             .setTitle(R.string.header_server)

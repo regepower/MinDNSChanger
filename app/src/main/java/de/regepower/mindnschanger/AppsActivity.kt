@@ -61,6 +61,16 @@ class AppsActivity : Activity() {
                 changed = true
             }
         }
+        // No window title bar (theme): own bold title like the main screen.
+        root.addView(
+            TextView(this).apply {
+                text = getString(R.string.header_apps)
+                textSize = 22f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(getColor(R.color.md_on_container))
+                setPadding(px(4), px(4), 0, px(4))
+            }
+        )
         root.addView(mode)
         root.addView(hint(getString(R.string.hint_apps)))
 
