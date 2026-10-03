@@ -1,0 +1,52 @@
+package de.regepower.mindnschanger
+
+import android.content.Context
+
+class Prefs(context: Context) {
+    private val sp = context.getSharedPreferences("mindns", Context.MODE_PRIVATE)
+
+    /** Name of the selected DNS entry. */
+    var selected: String
+        get() = sp.getString(KEY_SELECTED, null) ?: DnsServer.PRESETS[0].name
+        set(v) = sp.edit().putString(KEY_SELECTED, v).apply()
+
+    /** User-defined entries, one per line: name TAB primary TAB secondary. */
+    var custom: List<DnsServer>
+        get() = sp.getString(KEY_CUSTOM, "").orEmpty().split('\n').mapNotNull { line ->
+            val f = line.split('\t')
+            if (f.size < 2 || f[0].isBlank()) {
+                null
+            } else {
+                DnsServer(f[0], f[1], f.getOrNull(2)?.takeIf { it.isNotBlank() }, true)
+            }
+        }
+        set(v) = sp.edit().putString(
+            KEY_CUSTOM,
+            v.joinToString("\n") { "${it.name}\t${it.primary}\t${it.secondary.orEmpty()}" }
+        ).apply()
+
+    /** true: only the selected apps use the DNS; false: all apps except the selected ones. */
+    var whitelist: Boolean
+        get() = sp.getBoolean(KEY_WHITELIST, false)
+        set(v) = sp.edit().putBoolean(KEY_WHITELIST, v).apply()
+
+    var packages: List<String>
+        get() = sp.getString(KEY_PKGS, "").orEmpty().split('\n').filter { it.isNotBlank() }
+        set(v) = sp.edit().putString(KEY_PKGS, v.joinToString("\n")).apply()
+
+    var autostart: Boolean
+        get() = sp.getBoolean(KEY_AUTOSTART, false)
+        set(v) = sp.edit().putBoolean(KEY_AUTOSTART, v).apply()
+
+    fun servers(): List<DnsServer> = DnsServer.PRESETS + custom
+
+    fun current(): DnsServer = servers().firstOrNull { it.name == selected } ?: DnsServer.PRESETS[0]
+
+    companion object {
+        private const val KEY_SELECTED = "selected"
+        private const val KEY_CUSTOM = "custom"
+        private const val KEY_WHITELIST = "whitelist"
+        private const val KEY_PKGS = "pkgs"
+        private const val KEY_AUTOSTART = "autostart"
+    }
+}

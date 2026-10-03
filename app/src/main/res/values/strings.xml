@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">MinDNSChanger</string>
+    <string name="tile_label">DNS</string>
+    <string name="state_off">Off</string>
+    <string name="state_on">Active: %1$s</string>
+    <string name="btn_start">Start VPN</string>
+    <string name="btn_stop">Stop VPN</string>
+    <string name="header_server">DNS server</string>
+    <string name="hint_custom">Long-press a custom entry to delete it.</string>
+    <string name="btn_add_server">Add custom server</string>
+    <string name="dlg_add_title">Custom DNS server</string>
+    <string name="field_name">Name</string>
+    <string name="field_primary">Primary DNS (IPv4)</string>
+    <string name="field_secondary">Secondary DNS (optional)</string>
+    <string name="err_name">Name missing or already in use</string>
+    <string name="err_ip">Invalid IPv4 address</string>
+    <string name="btn_save">Save</string>
+    <string name="dlg_delete_title">Delete %1$s?</string>
+    <string name="btn_delete">Delete</string>
+    <string name="header_apps">Apps</string>
+    <string name="btn_apps">Select apps (%1$d)</string>
+    <string name="mode_blacklist">All apps except the selected ones</string>
+    <string name="mode_whitelist">Only the selected apps</string>
+    <string name="hint_apps">Only the apps covered by the filter use the chosen DNS server. Without a selection, all apps use it.</string>
+    <string name="header_options">Options</string>
+    <string name="autostart">Start on device boot</string>
+    <string name="btn_always_on">Set up always-on VPN</string>
+    <string name="hint_always_on">In the VPN settings, open MinDNSChanger and enable \"Always-on VPN\". Leave \"Block connections without VPN\" off, otherwise the internet stops working.</string>
+    <string name="hint_tile">Quick settings tile: edit the quick settings and add \"DNS\".</string>
+    <string name="search_hint">Search apps</string>
+    <string name="header_selected">Selected (%1$d)</string>
+    <string name="header_available">Available</string>
+    <string name="channel_name">DNS VPN</string>
+    <string name="notif_title">DNS active: %1$s</string>
+    <string name="action_stop">Stop</string>
+    <string name="err_vpn_denied">VPN permission denied</string>
+</resources>

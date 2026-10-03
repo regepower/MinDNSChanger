@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tile_label">DNS</string>
+    <string name="state_off">Aus</string>
+    <string name="state_on">Aktiv: %1$s</string>
+    <string name="btn_start">VPN starten</string>
+    <string name="btn_stop">VPN stoppen</string>
+    <string name="header_server">DNS-Server</string>
+    <string name="hint_custom">Eigene Einträge: lange drücken zum Löschen.</string>
+    <string name="btn_add_server">Eigenen Server hinzufügen</string>
+    <string name="dlg_add_title">Eigener DNS-Server</string>
+    <string name="field_name">Name</string>
+    <string name="field_primary">Primärer DNS (IPv4)</string>
+    <string name="field_secondary">Sekundärer DNS (optional)</string>
+    <string name="err_name">Name fehlt oder ist schon vergeben</string>
+    <string name="err_ip">Ungültige IPv4-Adresse</string>
+    <string name="btn_save">Speichern</string>
+    <string name="dlg_delete_title">%1$s löschen?</string>
+    <string name="btn_delete">Löschen</string>
+    <string name="header_apps">Apps</string>
+    <string name="btn_apps">Apps auswählen (%1$d)</string>
+    <string name="mode_blacklist">Alle Apps außer den ausgewählten</string>
+    <string name="mode_whitelist">Nur die ausgewählten Apps</string>
+    <string name="hint_apps">Nur Apps, die der Filter erfasst, nutzen den gewählten DNS-Server. Ohne Auswahl nutzen ihn alle Apps.</string>
+    <string name="header_options">Optionen</string>
+    <string name="autostart">Beim Gerätestart aktivieren</string>
+    <string name="btn_always_on">Durchgehend aktives VPN einrichten</string>
+    <string name="hint_always_on">In den VPN-Einstellungen MinDNSChanger öffnen und „Durchgehend aktives VPN“ einschalten. „Verbindungen ohne VPN blockieren“ ausgeschaltet lassen, sonst fällt das Internet aus.</string>
+    <string name="hint_tile">Kachel: Schnelleinstellungen bearbeiten und „DNS“ hinzufügen.</string>
+    <string name="search_hint">Apps suchen</string>
+    <string name="header_selected">Ausgewählt (%1$d)</string>
+    <string name="header_available">Verfügbar</string>
+    <string name="channel_name">DNS-VPN</string>
+    <string name="notif_title">DNS aktiv: %1$s</string>
+    <string name="action_stop">Stopp</string>
+    <string name="err_vpn_denied">VPN-Berechtigung verweigert</string>
+</resources>
