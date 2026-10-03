@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.net.VpnService
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
@@ -39,7 +40,15 @@ class DnsVpnService : VpnService() {
             return START_NOT_STICKY
         }
         try {
-            startForeground(NOTIFICATION_ID, notification(server), ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification(server),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification(server))
+            }
         } catch (e: RuntimeException) {
             Log.e(TAG, "startForeground failed", e)
         }
