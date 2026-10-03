@@ -37,13 +37,21 @@ The sandbox has no Android SDK, so you cannot compile locally. Write code → pu
 
 Short version: a boot receiver may start a foreground service of type `specialUse`; that service shows a 1×1 `TYPE_APPLICATION_OVERLAY` window (needs `SYSTEM_ALERT_WINDOW` granted by the user) and only then calls `startActivity` for other apps, because Android 15+ allows background activity starts for overlay holders *only while the overlay is visible*. Full recipe, manifest entries, permission flow and OEM caveats: `references/android16-background-start.md`.
 
+## DNS-only VPN (MinDNSChanger)
+
+`VpnService.Builder` with `addAddress` + `addDnsServer`, **no routes**, `allowFamily(AF_INET/AF_INET6)`, no packet loop: Android resolves names for the covered apps via those servers while traffic uses the normal network. FGS type `systemExempted` needs `FOREGROUND_SERVICE_SYSTEM_EXEMPTED` **and** `USE_EXACT_ALARM` (lint `ForegroundServicePermission`). Always-on via `<intent-filter android.net.VpnService>` + `SUPPORTS_ALWAYS_ON`; "Block connections without VPN" must stay off. Network rules through `registerDefaultNetworkCallback` (the app excludes itself from its VPN, so it sees the underlying network) and `NET_CAPABILITY_CAPTIVE_PORTAL` for login hotspots.
+
 ## UI / design (Material You without libraries)
 
 Use `Theme.DeviceDefault.DayNight` as parent and map your own `md_*` colors to `@android:color/system_accent1_*` / `system_neutral*` in `values-v31` and `values-night-v31`, with fixed fallback palettes for Android 10/11. Tonal/filled buttons, rounded bordered cards, error-container for "missing permission" state, tooltips for long-press help, transparent navigation bar (`android:enforceNavigationBarContrast=false`). This cost ~3 KB total, whereas Material Components or Compose cost megabytes. Snippets and the list-selector pattern (search + selected-first/two lists + drag sort): `references/ui-material-you.md`.
 
+## App shell (all our apps)
+
+Same top row everywhere: app name large + bold, then icons **save config**, **load config**, **help (?)**. Help is a dialog with a short guide; config is one JSON file via the Storage Access Framework (no permission), generic `ConfigIO.kt`. Long lists show only the active entry in a card (tap = picker dialog, + / − icons). Details, icon paths and the tested ConfigIO: `references/app-shell.md`.
+
 ## App icon
 
-Adaptive vector icon (background colour + foreground vector + monochrome for themed icons) plus a separate white notification glyph; no PNGs. Keep the artwork inside the r = 33 safe zone (scale it, the visible area is only the centre 72 of 108 units) and preview drafts as a contact sheet before building the chosen one: `references/app-icon.md`.
+Adaptive vector icon (background colour + foreground vector + monochrome for themed icons) plus a separate white notification glyph; no PNGs. Fill the r = 33 safe zone (the visible area is only the centre 72 of 108 units) with a **filled** main shape — thin outlines scaled to ~0.83 looked too small next to other apps. Every app gets its own background colour. Preview drafts as a contact sheet before building the chosen one: `references/app-icon.md`.
 
 ## Localization
 

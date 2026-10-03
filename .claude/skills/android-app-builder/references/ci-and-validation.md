@@ -34,3 +34,9 @@ To compare a change against a baseline in the same pipeline, push the *instrumen
 - Never leave scratch or packaging output (`*.skill`, preview PNGs, drafts) inside the cloned repo directory: the stop hook reports untracked files and demands commit + push. Write such files to the scratchpad or a sibling directory, and send them with the file tool.
 - If a stray file already sits in the repo: delete it when it is only a delivery copy, commit it when the user wants it versioned.
 - Chain validation and publishing with `&&` and check the *whole* output: a failed `quick_validate` (e.g. skill description over 1024 chars) must stop the push. Set variables (paths) in the same command block in which they are used.
+
+## When job logs and artifacts are unreachable (gh CLI sessions)
+`gh run view --log-failed` and artifact downloads redirect to blob storage, which the egress proxy blocks (403). Make the workflow put the evidence into **annotations**, which `gh run view <id>` prints: tee the Gradle/ktlint output to `$RUNNER_TEMP/build.log`, then an `if: failure()` step greps `^e: |: Error: |error: |What went wrong|(standard:` plus `lint-results-debug.txt` (`lint { textReport = true }`) and emits one `::error title=Build errors::…` (newlines as `%0A`). Reference: `regepower/MinDNSChanger/.github/workflows/build.yml` (ktlint step + annotations + APK size in a step name, read with `gh run view <id> --json jobs -q '.jobs[0].steps[].name'`).
+- ktlint 1.5.0 from GitHub releases with `.editorconfig` `ktlint_code_style = android_studio`; locally `ktlint -F` before pushing.
+- Local compile check: kotlinc from GitHub releases + `android.jar` from `raw.githubusercontent.com/Reginer/aosp-android-jar/main/android-36/android.jar`, generated `R` stub, Java stubs for AndroidX classes (Google Maven is blocked), `-Werror`.
+

@@ -13,6 +13,12 @@ With minSdk ≥ 26 (here 29) one XML set replaces all launcher PNGs. Measured co
 - Preview before pushing: render an SVG twin of the vector clipped to `viewBox="18 18 72 72"` as circle (r 36) and squircle, with a dashed r = 33 guide, plus a 48 px version and the white notification glyph. Headless Chromium from `/opt/pw-browsers/chromium-*/chrome-linux/chrome --headless --no-sandbox --screenshot=out.png --window-size=W,H file://…` renders it (use window height ≥ the page height + ~100, or the bottom is cut off). No cairosvg/PIL in the sandbox.
 - Offer 4–6 numbered drafts in one contact sheet (large rounded square + small circle + caption) and let the user choose by number and colour; then build only the chosen one.
 
+## Size: use the safe zone, prefer filled shapes
+The only rule is the safe zone (Android adaptive icons: 108dp layer, 72dp visible, 66dp diameter guaranteed). Our first icons (scale 0.83, outlines) used only ~60 % of it and looked small next to e.g. Zepp. MinDNSChanger fix: shield path touching r ≈ 33 at scale 1.0, **filled** in the accent colour, inner glyph drawn in the background colour (`@color/ic_launcher_background` works as `strokeColor`) and scaled ×1.3. The themed (monochrome) icon only uses alpha, so it keeps the outline variant.
+
+## Colours in use (keep them distinct)
+BootDelay `#B10010` (red) · MinCalSync indigo · MinCalWidget teal · MinDNSChanger `#5B2A86` (violet, chosen from violet/petrol/dark blue/anthracite drafts). Accent `#FFC857` (amber) on all.
+
 ## After installing
 Launchers cache icons: if the old icon stays after an update, uninstall and reinstall once. Themed icons only appear when the user enables "Themed icons" in the wallpaper/launcher settings (Android 13+).
 
