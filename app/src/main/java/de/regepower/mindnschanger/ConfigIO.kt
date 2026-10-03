@@ -7,15 +7,18 @@ import org.json.JSONObject
 
 /**
  * Export/import of one SharedPreferences file as JSON (typed values), used by the
- * header's save/load buttons. Generic: copy unchanged into other apps.
+ * header's save/load buttons. Generic: copy unchanged into other apps (only the package line changes).
+ * [keep]: device-specific keys (boot counters, calendar IDs …) that are neither exported nor overwritten.
+ * Pass a set (`keep = DEVICE_KEYS::contains`) or any predicate (`{ it.endsWith(".cals") }`).
  */
 object ConfigIO {
     const val MIME = "application/json"
     private const val FORMAT = 1
 
-    fun toJson(sp: SharedPreferences, app: String): String {
+    fun toJson(sp: SharedPreferences, app: String, keep: (String) -> Boolean = { false }): String {
         val values = JSONObject()
         for ((key, value) in sp.all) {
+            if (keep(key)) continue
             val entry = when (value) {
                 is Boolean -> typed("b", value)
                 is Int -> typed("i", value)
@@ -35,14 +38,15 @@ object ConfigIO {
     }
 
     /** Replaces all values with the file's content. False if [json] is not a valid config of [app]. */
-    fun fromJson(sp: SharedPreferences, json: String, app: String): Boolean {
+    fun fromJson(sp: SharedPreferences, json: String, app: String, keep: (String) -> Boolean = { false }): Boolean {
         val parsed = try {
             parse(json, app)
         } catch (_: JSONException) {
             null
         } ?: return false
-        val editor = sp.edit().clear()
-        parsed.forEach { (key, value) ->
+        val editor = sp.edit()
+        sp.all.keys.filterNot(keep).forEach { editor.remove(it) }
+        parsed.filterKeys { !keep(it) }.forEach { (key, value) ->
             @Suppress("UNCHECKED_CAST")
             when (value) {
                 is Boolean -> editor.putBoolean(key, value)
