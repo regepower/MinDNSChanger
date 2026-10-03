@@ -13,6 +13,7 @@ data class DnsServer(val name: String, val primary: String, val secondary: Strin
             DnsServer("Quad9", "9.9.9.9", "149.112.112.112", false),
             DnsServer("AdGuard", "94.140.14.14", "94.140.15.15", false),
             DnsServer("AdGuard Family", "94.140.14.15", "94.140.15.16", false),
+            DnsServer("HaGeZi", "188.34.161.210", "159.69.155.94", false),
             DnsServer("Google", "8.8.8.8", "8.8.4.4", false),
             DnsServer("OpenDNS", "208.67.222.222", "208.67.220.220", false)
         )
