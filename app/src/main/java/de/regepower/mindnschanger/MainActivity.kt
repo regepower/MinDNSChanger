@@ -85,7 +85,7 @@ class MainActivity : Activity() {
         }
         serverAddr = TextView(this).apply {
             textSize = 13f
-            alpha = 0.7f
+            setTextColor(getColor(R.color.md_on_surface_variant))
         }
         info.addView(serverName)
         info.addView(serverAddr)
@@ -296,7 +296,7 @@ class MainActivity : Activity() {
                 val start = srv.name.length + 1
                 setSpan(RelativeSizeSpan(0.75f), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 setSpan(
-                    ForegroundColorSpan(getColor(R.color.md_outline)),
+                    ForegroundColorSpan(getColor(R.color.md_on_surface_variant)),
                     start,
                     text.length,
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE

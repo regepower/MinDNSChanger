@@ -208,7 +208,7 @@ class AppsActivity : Activity() {
             val name = TextView(ctx).apply { textSize = 15f }
             val pkg = TextView(ctx).apply {
                 textSize = 10f
-                alpha = 0.6f
+                setTextColor(getColor(R.color.md_on_surface_variant))
             }
             texts.addView(name)
             texts.addView(pkg)

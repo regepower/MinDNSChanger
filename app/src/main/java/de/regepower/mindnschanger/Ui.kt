@@ -44,7 +44,7 @@ internal fun Context.header(text: String) = TextView(this).apply {
 internal fun Context.hint(text: String) = TextView(this).apply {
     this.text = text
     textSize = 12f
-    alpha = 0.7f
+    setTextColor(getColor(R.color.md_on_surface_variant))
     setPadding(px(4), px(4), px(4), px(4))
 }
 

@@ -258,7 +258,6 @@ class DnsVpnService : VpnService() {
         return Notification.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
-            .setContentText(server.addresses)
             .setContentIntent(mainIntent())
             .setOngoing(true)
             .setShowWhen(false)
