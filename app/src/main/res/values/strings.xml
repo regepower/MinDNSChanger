@@ -35,4 +35,13 @@
     <string name="notif_title">DNS active: %1$s</string>
     <string name="action_stop">Stop</string>
     <string name="err_vpn_denied">VPN permission denied</string>
+    <string name="state_paused">Paused: %1$s</string>
+    <string name="tile_paused">Paused</string>
+    <string name="notif_paused">DNS paused: %1$s</string>
+    <string name="pause_captive">Wi-Fi login page</string>
+    <string name="pause_wifi">Wi-Fi excluded</string>
+    <string name="pause_mobile">Mobile data excluded</string>
+    <string name="opt_mobile">Use on mobile data</string>
+    <string name="opt_wifi">Use on Wi-Fi</string>
+    <string name="opt_captive">Pause on Wi-Fi login pages (e.g. train or hotel hotspots)</string>
 </resources>

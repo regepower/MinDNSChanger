@@ -34,4 +34,13 @@
     <string name="notif_title">DNS aktiv: %1$s</string>
     <string name="action_stop">Stopp</string>
     <string name="err_vpn_denied">VPN-Berechtigung verweigert</string>
+    <string name="state_paused">Pausiert: %1$s</string>
+    <string name="tile_paused">Pausiert</string>
+    <string name="notif_paused">DNS pausiert: %1$s</string>
+    <string name="pause_captive">WLAN-Anmeldeseite</string>
+    <string name="pause_wifi">WLAN ausgeschlossen</string>
+    <string name="pause_mobile">Mobile Daten ausgeschlossen</string>
+    <string name="opt_mobile">Bei mobilen Daten nutzen</string>
+    <string name="opt_wifi">Bei WLAN nutzen</string>
+    <string name="opt_captive">Bei WLAN-Anmeldeseiten pausieren (z. B. Bahn- oder Hotel-Hotspots)</string>
 </resources>

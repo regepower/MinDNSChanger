@@ -9,6 +9,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.VpnService
 import android.os.Build
 import android.os.Handler
@@ -23,9 +27,43 @@ import java.util.concurrent.CopyOnWriteArraySet
  * DNS-only VPN: the tunnel gets an address and the chosen DNS servers but no routes.
  * Android then resolves names for the covered apps through these servers, while all
  * traffic keeps using the normal network. No packet loop, nothing read from the tunnel.
+ *
+ * While the service runs it watches the network: the tunnel is closed ("paused") on an
+ * excluded network type or while a Wi-Fi network waits for a captive-portal login, and
+ * re-opened when the network fits again. The service itself stays in the foreground.
  */
 class DnsVpnService : VpnService() {
     private var tunnel: ParcelFileDescriptor? = null
+    private val main = Handler(Looper.getMainLooper())
+    private var cm: ConnectivityManager? = null
+
+    /** Underlying default network of this app (the app itself is always excluded from the tunnel). */
+    private var defaultCaps: NetworkCapabilities? = null
+    private val wifiCaps = HashMap<Network, NetworkCapabilities>()
+
+    private val defaultCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+            defaultCaps = caps
+            evaluate(false)
+        }
+
+        override fun onLost(network: Network) {
+            defaultCaps = null
+            evaluate(false)
+        }
+    }
+
+    private val wifiCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+            wifiCaps[network] = caps
+            evaluate(false)
+        }
+
+        override fun onLost(network: Network) {
+            wifiCaps.remove(network)
+            evaluate(false)
+        }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
@@ -33,33 +71,15 @@ class DnsVpnService : VpnService() {
             return START_NOT_STICKY
         }
         // ACTION_START, always-on start by the system (android.net.VpnService) or sticky restart (null intent).
-        val server = Prefs(this).current()
         if (prepare(this) != null) {
             Log.w(TAG, "VPN permission missing, not starting")
             shutdown()
             return START_NOT_STICKY
         }
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    notification(server),
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
-                )
-            } else {
-                startForeground(NOTIFICATION_ID, notification(server))
-            }
-        } catch (e: RuntimeException) {
-            Log.e(TAG, "startForeground failed", e)
-        }
-        val old = tunnel
-        tunnel = establish(server)
-        closeQuietly(old)
-        if (tunnel == null) {
-            shutdown()
-            return START_NOT_STICKY
-        }
-        setRunning(this, server)
+        goForeground(Prefs(this).current(), null)
+        watchNetworks()
+        // Re-open the tunnel so changed settings (server, apps) apply immediately.
+        evaluate(true)
         return START_STICKY
     }
 
@@ -69,18 +89,98 @@ class DnsVpnService : VpnService() {
     }
 
     override fun onDestroy() {
+        unwatchNetworks()
         closeQuietly(tunnel)
         tunnel = null
-        setRunning(this, null)
+        publish(this, null, null)
         super.onDestroy()
     }
 
     private fun shutdown() {
+        unwatchNetworks()
         closeQuietly(tunnel)
         tunnel = null
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
-        setRunning(this, null)
+        publish(this, null, null)
+    }
+
+    private fun watchNetworks() {
+        if (cm != null) return
+        val c = getSystemService(ConnectivityManager::class.java)
+        cm = c
+        c.registerDefaultNetworkCallback(defaultCallback, main)
+        c.registerNetworkCallback(
+            NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build(),
+            wifiCallback,
+            main
+        )
+    }
+
+    private fun unwatchNetworks() {
+        val c = cm ?: return
+        cm = null
+        try {
+            c.unregisterNetworkCallback(defaultCallback)
+            c.unregisterNetworkCallback(wifiCallback)
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "unregister failed", e)
+        }
+        defaultCaps = null
+        wifiCaps.clear()
+    }
+
+    /** String resource explaining why the tunnel must stay closed, or null if it may be open. */
+    private fun pauseReason(): Int? {
+        val prefs = Prefs(this)
+        if (prefs.pauseCaptive) {
+            val captive = (wifiCaps.values + listOfNotNull(defaultCaps))
+                .any { it.hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL) }
+            if (captive) return R.string.pause_captive
+        }
+        val caps = defaultCaps ?: return null
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) && !prefs.onWifi) return R.string.pause_wifi
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) && !prefs.onMobile) return R.string.pause_mobile
+        return null
+    }
+
+    /** Opens or closes the tunnel to match the network; [reopen] forces a fresh tunnel. */
+    private fun evaluate(reopen: Boolean) {
+        if (cm == null) return
+        val server = Prefs(this).current()
+        val reason = pauseReason()
+        if (reason != null) {
+            if (tunnel != null || reopen || pausedReason != reason) {
+                closeQuietly(tunnel)
+                tunnel = null
+                goForeground(server, reason)
+                publish(this, null, reason)
+            }
+            return
+        }
+        if (tunnel != null && !reopen) return
+        val old = tunnel
+        tunnel = establish(server)
+        closeQuietly(old)
+        if (tunnel == null) {
+            shutdown()
+            return
+        }
+        goForeground(server, null)
+        publish(this, server, null)
+    }
+
+    private fun goForeground(server: DnsServer, reason: Int?) {
+        try {
+            val n = notification(server, reason)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
+            } else {
+                startForeground(NOTIFICATION_ID, n)
+            }
+        } catch (e: RuntimeException) {
+            Log.e(TAG, "startForeground failed", e)
+        }
     }
 
     /** Tries a few private addresses in case one collides with the current network. */
@@ -139,7 +239,7 @@ class DnsVpnService : VpnService() {
         PendingIntent.FLAG_IMMUTABLE
     )
 
-    private fun notification(server: DnsServer): Notification {
+    private fun notification(server: DnsServer, reason: Int?): Notification {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL, getString(R.string.channel_name), NotificationManager.IMPORTANCE_LOW)
@@ -150,9 +250,14 @@ class DnsVpnService : VpnService() {
             Intent(this, DnsVpnService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_IMMUTABLE
         )
+        val title = if (reason == null) {
+            getString(R.string.notif_title, server.name)
+        } else {
+            getString(R.string.notif_paused, getString(reason))
+        }
         return Notification.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(getString(R.string.notif_title, server.name))
+            .setContentTitle(title)
             .setContentText(server.addresses)
             .setContentIntent(mainIntent())
             .setOngoing(true)
@@ -182,18 +287,25 @@ class DnsVpnService : VpnService() {
             "10.111.222.1" to 32
         )
 
-        /** Server in use while the tunnel is up, null when off. */
+        /** Server in use while the tunnel is up, null otherwise. */
         @Volatile
         var active: DnsServer? = null
             private set
 
-        val running: Boolean get() = active != null
+        /** Why the running service keeps the tunnel closed (string resource), null otherwise. */
+        @Volatile
+        var pausedReason: Int? = null
+            private set
+
+        /** Service switched on (tunnel up or paused). */
+        val running: Boolean get() = active != null || pausedReason != null
 
         /** UI callbacks (main thread) for state changes. */
         val listeners = CopyOnWriteArraySet<() -> Unit>()
 
-        private fun setRunning(ctx: Context, server: DnsServer?) {
+        private fun publish(ctx: Context, server: DnsServer?, reason: Int?) {
             active = server
+            pausedReason = reason
             TileService.requestListeningState(ctx, ComponentName(ctx, DnsTileService::class.java))
             Handler(Looper.getMainLooper()).post { listeners.forEach { it() } }
         }

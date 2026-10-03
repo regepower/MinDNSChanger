@@ -32,8 +32,12 @@ class DnsTileService : TileService() {
     private fun update() {
         val tile = qsTile ?: return
         val server = DnsVpnService.active
-        tile.state = if (server != null) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-        tile.subtitle = server?.name ?: getString(R.string.state_off)
+        tile.state = if (DnsVpnService.running) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
+        tile.subtitle = when {
+            server != null -> server.name
+            DnsVpnService.pausedReason != null -> getString(R.string.tile_paused)
+            else -> getString(R.string.state_off)
+        }
         tile.updateTile()
     }
 

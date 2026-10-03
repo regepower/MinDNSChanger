@@ -77,6 +77,9 @@ class MainActivity : Activity() {
             setOnCheckedChangeListener { _, on -> prefs.autostart = on }
         }
         content.addView(autostart, fullWidth())
+        content.addView(optionSwitch(R.string.opt_mobile, prefs.onMobile) { prefs.onMobile = it })
+        content.addView(optionSwitch(R.string.opt_wifi, prefs.onWifi) { prefs.onWifi = it })
+        content.addView(optionSwitch(R.string.opt_captive, prefs.pauseCaptive) { prefs.pauseCaptive = it })
         content.addView(
             button(getString(R.string.btn_always_on), null) { startActivity(Intent(Settings.ACTION_VPN_SETTINGS)) },
             fullWidth(8)
@@ -124,6 +127,19 @@ class MainActivity : Activity() {
         }
     }
 
+    /** Switch that stores [save] and re-applies the rules to a running service. */
+    private fun optionSwitch(textRes: Int, checked: Boolean, save: (Boolean) -> Unit) = Switch(this).apply {
+        text = getString(textRes)
+        textSize = 15f
+        isChecked = checked
+        setPadding(px(4), px(4), px(4), px(4))
+        layoutParams = fullWidth()
+        setOnCheckedChangeListener { _, on ->
+            save(on)
+            if (DnsVpnService.running) DnsVpnService.start(this@MainActivity)
+        }
+    }
+
     private fun onToggle() {
         if (DnsVpnService.running) {
             DnsVpnService.stop(this)
@@ -140,8 +156,13 @@ class MainActivity : Activity() {
 
     private fun renderState() {
         val active = DnsVpnService.active
-        if (active != null) {
-            status.text = getString(R.string.state_on, active.name)
+        val paused = DnsVpnService.pausedReason
+        if (active != null || paused != null) {
+            status.text = if (active != null) {
+                getString(R.string.state_on, active.name)
+            } else {
+                getString(R.string.state_paused, getString(paused!!))
+            }
             toggle.text = getString(R.string.btn_stop)
             styleButton(toggle, R.color.md_container, R.color.md_on_container)
         } else {

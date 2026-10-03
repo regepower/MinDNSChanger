@@ -38,6 +38,19 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_AUTOSTART, false)
         set(v) = sp.edit().putBoolean(KEY_AUTOSTART, v).apply()
 
+    var onMobile: Boolean
+        get() = sp.getBoolean(KEY_MOBILE, true)
+        set(v) = sp.edit().putBoolean(KEY_MOBILE, v).apply()
+
+    var onWifi: Boolean
+        get() = sp.getBoolean(KEY_WIFI, true)
+        set(v) = sp.edit().putBoolean(KEY_WIFI, v).apply()
+
+    /** Close the tunnel while a Wi-Fi network waits for a captive-portal login (e.g. train hotspots). */
+    var pauseCaptive: Boolean
+        get() = sp.getBoolean(KEY_CAPTIVE, true)
+        set(v) = sp.edit().putBoolean(KEY_CAPTIVE, v).apply()
+
     fun servers(): List<DnsServer> = DnsServer.PRESETS + custom
 
     fun current(): DnsServer = servers().firstOrNull { it.name == selected } ?: DnsServer.PRESETS[0]
@@ -48,5 +61,8 @@ class Prefs(context: Context) {
         private const val KEY_WHITELIST = "whitelist"
         private const val KEY_PKGS = "pkgs"
         private const val KEY_AUTOSTART = "autostart"
+        private const val KEY_MOBILE = "on_mobile"
+        private const val KEY_WIFI = "on_wifi"
+        private const val KEY_CAPTIVE = "pause_captive"
     }
 }
