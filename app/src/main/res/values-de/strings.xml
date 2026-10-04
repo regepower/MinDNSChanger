@@ -6,7 +6,7 @@
     <string name="btn_start">VPN starten</string>
     <string name="btn_stop">VPN stoppen</string>
     <string name="header_server">DNS-Server</string>
-    <string name="btn_add_server">Eigenen Server hinzufügen</string>
+    <string name="btn_add_server">Hinzufügen</string>
     <string name="dlg_add_title">Eigener DNS-Server</string>
     <string name="field_name">Name</string>
     <string name="field_primary">Primärer DNS (IPv4)</string>

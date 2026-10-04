@@ -20,7 +20,9 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ListView
 import android.widget.RadioButton
 import android.widget.ScrollView
 import android.widget.Switch
@@ -229,7 +231,6 @@ class MainActivity : Activity() {
     private fun pickServer() {
         val list = prefs.servers()
         val current = prefs.current().name
-        lateinit var dialog: AlertDialog
         val adapter = object : BaseAdapter() {
             override fun getCount() = list.size
             override fun getItem(position: Int) = list[position]
@@ -237,25 +238,41 @@ class MainActivity : Activity() {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
                 serverRow(list[position], list[position].name == current)
         }
-        dialog = AlertDialog.Builder(this)
+        // Own scrollable list with a capped height, so the buttons always stay visible below it.
+        val listView = ListView(this).apply {
+            this.adapter = adapter
+            divider = null
+            isVerticalScrollBarEnabled = true
+        }
+        val row = serverRow(list[0], false).apply { measure(0, 0) }
+        val maxHeight = (resources.displayMetrics.heightPixels * 0.55f).toInt()
+        val height = minOf(row.measuredHeight * list.size, maxHeight)
+        val box = FrameLayout(this).apply {
+            setPadding(0, px(8), 0, 0)
+            addView(listView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height))
+        }
+        val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.header_server)
-            .setAdapter(adapter) { _, which -> selectServer(list[which].name) }
+            .setView(box)
             .setNeutralButton(R.string.btn_add_server) { _, _ -> addServerDialog() }
             .setNegativeButton(android.R.string.cancel, null)
             .create()
-        dialog.setOnShowListener {
-            dialog.listView.setOnItemLongClickListener { _, _, position, _ ->
-                val srv = list[position]
-                if (srv.custom) {
-                    dialog.dismiss()
-                    deleteServerDialog(srv)
-                } else {
-                    Toast.makeText(this, R.string.err_preset_delete, Toast.LENGTH_SHORT).show()
-                }
-                true
+        listView.setOnItemClickListener { _, _, position, _ ->
+            selectServer(list[position].name)
+            dialog.dismiss()
+        }
+        listView.setOnItemLongClickListener { _, _, position, _ ->
+            val srv = list[position]
+            if (srv.custom) {
+                dialog.dismiss()
+                deleteServerDialog(srv)
+            } else {
+                Toast.makeText(this, R.string.err_preset_delete, Toast.LENGTH_SHORT).show()
             }
+            true
         }
         dialog.show()
+        listView.setSelection(maxOf(0, list.indexOfFirst { it.name == current } - 2))
     }
 
     private fun serverRow(srv: DnsServer, checked: Boolean): View = LinearLayout(this).apply {
