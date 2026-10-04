@@ -210,7 +210,13 @@ class MainActivity : Activity() {
             Log.w("MinDNS", "load config", e)
             null
         }
-        if (json == null || !ConfigIO.fromJson(prefs.sp, json, getString(R.string.app_name))) {
+        // Files saved before the rename carry the old app name.
+        val ok = json != null &&
+            (
+                ConfigIO.fromJson(prefs.sp, json, getString(R.string.app_name)) ||
+                    ConfigIO.fromJson(prefs.sp, json, OLD_NAME)
+                )
+        if (!ok) {
             toast(R.string.cfg_invalid)
             return
         }
@@ -379,6 +385,7 @@ class MainActivity : Activity() {
     }
 
     companion object {
+        private const val OLD_NAME = "MinDNSChanger"
         private const val REQ_VPN = 1
         private const val REQ_NOTIFY = 2
         private const val REQ_SAVE = 3

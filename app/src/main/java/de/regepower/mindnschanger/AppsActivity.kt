@@ -15,6 +15,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.Switch
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -22,7 +23,14 @@ import java.util.Locale
 
 /** App selector from BootDelay (search, selected/available lists), without drag sorting, plus filter mode. */
 class AppsActivity : Activity() {
-    private class AppItem(val label: String, val pkg: String, val icon: Drawable, var selected: Boolean)
+    private class AppItem(
+        val label: String,
+        val pkg: String,
+        val icon: Drawable,
+        var selected: Boolean,
+        // false = system app/service without launcher icon (e.g. Play Store update service)
+        val launcher: Boolean
+    )
 
     private lateinit var prefs: Prefs
     private lateinit var selectedHeader: TextView
@@ -88,6 +96,20 @@ class AppsActivity : Activity() {
             })
         }
         root.addView(search)
+        root.addView(
+            Switch(this).apply {
+                text = getString(R.string.show_system)
+                textSize = 14f
+                isChecked = prefs.showSystem
+                tooltipText = getString(R.string.help_show_system)
+                setPadding(px(4), px(4), px(4), px(4))
+                setOnCheckedChangeListener { _, on ->
+                    prefs.showSystem = on
+                    refreshLists()
+                }
+            },
+            fullWidth()
+        )
 
         selectedHeader = header(getString(R.string.header_selected, 0))
         root.addView(selectedHeader)
@@ -132,7 +154,7 @@ class AppsActivity : Activity() {
         selectedAdapter.set(all.filter { it.selected }.sortedWith(byLabel))
         selectedHeader.text = getString(R.string.header_selected, selectedAdapter.itemCount)
         availableAdapter.set(
-            all.filter { !it.selected }
+            all.filter { !it.selected && (it.launcher || prefs.showSystem) }
                 .filter {
                     query.isEmpty() || it.label.lowercase(Locale.getDefault()).contains(query) || it.pkg.contains(query)
                 }
@@ -149,16 +171,20 @@ class AppsActivity : Activity() {
         chosen.addAll(prefs.packages)
         val selected = chosen.toSet()
         Thread {
-            val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-            val items = packageManager.queryIntentActivities(launcher, 0)
-                .filter { it.activityInfo.packageName != packageName }
-                .distinctBy { it.activityInfo.packageName }
+            // All installed packages; those with a launcher entry are "normal" apps, the rest only
+            // appear when "show system apps" is on (selected ones are always listed).
+            val pm = packageManager
+            val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+            val launcherPkgs = pm.queryIntentActivities(launcherIntent, 0).map { it.activityInfo.packageName }.toSet()
+            val items = pm.getInstalledApplications(0)
+                .filter { it.packageName != packageName }
                 .map {
                     AppItem(
-                        it.loadLabel(packageManager).toString(),
-                        it.activityInfo.packageName,
-                        it.loadIcon(packageManager),
-                        it.activityInfo.packageName in selected
+                        it.loadLabel(pm).toString(),
+                        it.packageName,
+                        it.loadIcon(pm),
+                        it.packageName in selected,
+                        it.packageName in launcherPkgs
                     )
                 }
             runOnUiThread {

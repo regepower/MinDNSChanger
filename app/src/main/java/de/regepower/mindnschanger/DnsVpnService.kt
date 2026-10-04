@@ -195,6 +195,9 @@ class DnsVpnService : VpnService() {
                     .allowFamily(OsConstants.AF_INET)
                     .allowFamily(OsConstants.AF_INET6)
                     .setMtu(1500)
+                    // Default for targetSdk 29+ is "metered": Play Store etc. would treat Wi-Fi as mobile data.
+                    // false = inherit metered state from the underlying network.
+                    .setMetered(false)
                     .setConfigureIntent(mainIntent())
                 b.addDnsServer(server.primary)
                 server.secondary?.let { b.addDnsServer(it) }

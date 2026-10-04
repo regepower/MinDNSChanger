@@ -24,7 +24,7 @@
     <string name="header_options">Optionen</string>
     <string name="autostart">Beim Gerätestart aktivieren</string>
     <string name="btn_always_on">Durchgehend aktives VPN einrichten</string>
-    <string name="hint_always_on">In den VPN-Einstellungen MinDNSChanger öffnen und „Durchgehend aktives VPN“ einschalten. „Verbindungen ohne VPN blockieren“ ausgeschaltet lassen, sonst fällt das Internet aus.</string>
+    <string name="hint_always_on">In den VPN-Einstellungen SwitchDNS öffnen und „Durchgehend aktives VPN“ einschalten. „Verbindungen ohne VPN blockieren“ ausgeschaltet lassen, sonst fällt das Internet aus.</string>
     <string name="hint_tile">Kachel: Schnelleinstellungen bearbeiten und „DNS“ hinzufügen.</string>
     <string name="search_hint">Apps suchen</string>
     <string name="header_selected">Ausgewählt (%1$d)</string>
@@ -49,7 +49,9 @@
     <string name="cfg_load">Konfiguration laden</string>
     <string name="cfg_saved">Konfiguration gespeichert</string>
     <string name="cfg_loaded">Konfiguration geladen</string>
-    <string name="cfg_invalid">Keine gültige MinDNSChanger-Konfiguration</string>
+    <string name="cfg_invalid">Keine gültige SwitchDNS-Konfiguration</string>
     <string name="cfg_error">Datei konnte nicht geschrieben werden</string>
-    <string name="help_text"><b>Was macht die App?</b>\nSie setzt für deine Apps einen anderen DNS-Server. Dazu startet sie ein lokales VPN, das nur die DNS-Einstellung trägt. Dein Datenverkehr läuft nicht hindurch, es wird nichts protokolliert.\n\n<b>Einrichtung</b>\n1. DNS-Server wählen (Karte antippen). + fügt einen eigenen hinzu, − löscht den angezeigten eigenen Eintrag.\n2. „VPN starten“ tippen und die VPN-Anfrage einmal erlauben.\n3. Optional: Kachel „DNS“ zu den Schnelleinstellungen hinzufügen.\n\n<b>Apps</b>\nEntweder alle Apps außer den ausgewählten oder nur die ausgewählten nutzen den DNS-Server.\n\n<b>Netzregeln</b>\nBei mobilen Daten und/oder WLAN nutzen. Auf WLAN-Anmeldeseiten (Bahn, Hotel) pausiert die App, bis du angemeldet bist.\n\n<b>Dauerhaft aktiv</b>\n„Beim Gerätestart aktivieren“ oder System-VPN-Einstellungen → MinDNSChanger → „Durchgehend aktives VPN“. „Verbindungen ohne VPN blockieren“ ausgeschaltet lassen.\n\n<b>Speichern / Laden</b>\nDie Symbole oben sichern alle Einstellungen (inkl. eigener Server und App-Liste) in eine Datei und stellen sie wieder her, z. B. auf einem neuen Handy.</string>
+    <string name="help_text"><b>Was macht die App?</b>\nSie setzt für deine Apps einen anderen DNS-Server. Dazu startet sie ein lokales VPN, das nur die DNS-Einstellung trägt. Dein Datenverkehr läuft nicht hindurch, es wird nichts protokolliert.\n\n<b>Einrichtung</b>\n1. DNS-Server wählen (Karte antippen). + fügt einen eigenen hinzu, − löscht den angezeigten eigenen Eintrag.\n2. „VPN starten“ tippen und die VPN-Anfrage einmal erlauben.\n3. Optional: Kachel „DNS“ zu den Schnelleinstellungen hinzufügen.\n\n<b>Apps</b>\nEntweder alle Apps außer den ausgewählten oder nur die ausgewählten nutzen den DNS-Server.\n\n<b>Netzregeln</b>\nBei mobilen Daten und/oder WLAN nutzen. Auf WLAN-Anmeldeseiten (Bahn, Hotel) pausiert die App, bis du angemeldet bist.\n\n<b>Dauerhaft aktiv</b>\n„Beim Gerätestart aktivieren“ oder System-VPN-Einstellungen → SwitchDNS → „Durchgehend aktives VPN“. „Verbindungen ohne VPN blockieren“ ausgeschaltet lassen.\n\n<b>Speichern / Laden</b>\nDie Symbole oben sichern alle Einstellungen (inkl. eigener Server und App-Liste) in eine Datei und stellen sie wieder her, z. B. auf einem neuen Handy.</string>
+    <string name="show_system">Systemapps anzeigen</string>
+    <string name="help_show_system">Zeigt auch Apps und Dienste ohne Startsymbol, z. B. Google-Play-Dienste.</string>
 </resources>

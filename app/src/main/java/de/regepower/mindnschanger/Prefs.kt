@@ -53,6 +53,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_CAPTIVE, true)
         set(v) = sp.edit().putBoolean(KEY_CAPTIVE, v).apply()
 
+    /** App selector also lists system apps without launcher icon. */
+    var showSystem: Boolean
+        get() = sp.getBoolean(KEY_SHOW_SYSTEM, false)
+        set(v) = sp.edit().putBoolean(KEY_SHOW_SYSTEM, v).apply()
+
     fun servers(): List<DnsServer> = DnsServer.PRESETS + custom
 
     fun current(): DnsServer = servers().firstOrNull { it.name == selected } ?: DnsServer.PRESETS[0]
@@ -66,5 +71,6 @@ class Prefs(context: Context) {
         private const val KEY_MOBILE = "on_mobile"
         private const val KEY_WIFI = "on_wifi"
         private const val KEY_CAPTIVE = "pause_captive"
+        private const val KEY_SHOW_SYSTEM = "show_system"
     }
 }
