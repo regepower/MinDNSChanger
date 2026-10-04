@@ -5,21 +5,23 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Typeface
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
-import android.text.SpannableString
-import android.text.Spanned
+import android.text.TextUtils
 import android.text.method.DigitsKeyListener
-import android.text.style.ForegroundColorSpan
-import android.text.style.RelativeSizeSpan
+import android.util.TypedValue
 import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.RadioButton
 import android.widget.ScrollView
 import android.widget.Switch
 import android.widget.TextView
@@ -31,7 +33,6 @@ class MainActivity : Activity() {
     private lateinit var toggle: Button
     private lateinit var serverName: TextView
     private lateinit var serverAddr: TextView
-    private lateinit var deleteBtn: ImageButton
     private lateinit var appsBtn: Button
     private lateinit var appsMode: TextView
     private val listener: () -> Unit = { renderState() }
@@ -60,7 +61,7 @@ class MainActivity : Activity() {
         statusCard.addView(toggle, fullWidth(8))
         content.addView(statusCard, fullWidth(8))
 
-        // DNS server: only the active one; tap = choose, + = add, - = delete own entry
+        // DNS server: only the active one; tap = list (own entries ★ on top, long-press deletes them)
         content.addView(header(getString(R.string.header_server)))
         val serverCard = card().apply {
             orientation = LinearLayout.HORIZONTAL
@@ -85,14 +86,6 @@ class MainActivity : Activity() {
         info.addView(serverName)
         info.addView(serverAddr)
         serverCard.addView(info, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        serverCard.addView(
-            iconButton(R.drawable.ic_add, getString(R.string.btn_add_server)) { addServerDialog() },
-            LinearLayout.LayoutParams(px(44), px(44))
-        )
-        deleteBtn = iconButton(R.drawable.ic_remove, getString(R.string.btn_delete)) {
-            deleteServerDialog(prefs.current())
-        }
-        serverCard.addView(deleteBtn, LinearLayout.LayoutParams(px(44), px(44)))
         content.addView(serverCard, fullWidth())
         content.addView(hint(getString(R.string.hint_server)))
 
@@ -216,10 +209,8 @@ class MainActivity : Activity() {
 
     private fun renderServer() {
         val s = prefs.current()
-        serverName.text = s.name
+        serverName.text = label(s)
         serverAddr.text = s.addresses
-        deleteBtn.isEnabled = s.custom
-        deleteBtn.alpha = if (s.custom) 1f else 0.3f
     }
 
     private fun selectServer(name: String) {
@@ -228,33 +219,83 @@ class MainActivity : Activity() {
         if (DnsVpnService.running) DnsVpnService.start(this)
     }
 
-    /** List of all servers in a dialog; "Add" opens the form. */
+    /** Own entries are marked with a star. */
+    private fun label(s: DnsServer) = if (s.custom) "$STAR ${s.name}" else s.name
+
+    /**
+     * All servers in a dialog: own entries (★) first, then the presets. Name on line 1, both
+     * addresses on line 2 (condensed, shrinks to stay on one line). Long-press deletes own entries.
+     */
     private fun pickServer() {
         val list = prefs.servers()
-        // Name on the first line, both addresses smaller and dimmed below.
-        val labels = list.map { srv ->
-            val text = "${srv.name}\n${srv.addresses}"
-            SpannableString(text).apply {
-                val start = srv.name.length + 1
-                setSpan(RelativeSizeSpan(0.75f), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                setSpan(
-                    ForegroundColorSpan(getColor(R.color.md_on_surface_variant)),
-                    start,
-                    text.length,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-            }
-        }.toTypedArray<CharSequence>()
-        val checked = list.indexOfFirst { it.name == prefs.current().name }
-        AlertDialog.Builder(this)
+        val current = prefs.current().name
+        lateinit var dialog: AlertDialog
+        val adapter = object : BaseAdapter() {
+            override fun getCount() = list.size
+            override fun getItem(position: Int) = list[position]
+            override fun getItemId(position: Int) = position.toLong()
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
+                serverRow(list[position], list[position].name == current)
+        }
+        dialog = AlertDialog.Builder(this)
             .setTitle(R.string.header_server)
-            .setSingleChoiceItems(labels, checked) { d, which ->
-                selectServer(list[which].name)
-                d.dismiss()
-            }
+            .setAdapter(adapter) { _, which -> selectServer(list[which].name) }
             .setNeutralButton(R.string.btn_add_server) { _, _ -> addServerDialog() }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .create()
+        dialog.setOnShowListener {
+            dialog.listView.setOnItemLongClickListener { _, _, position, _ ->
+                val srv = list[position]
+                if (srv.custom) {
+                    dialog.dismiss()
+                    deleteServerDialog(srv)
+                } else {
+                    Toast.makeText(this, R.string.err_preset_delete, Toast.LENGTH_SHORT).show()
+                }
+                true
+            }
+        }
+        dialog.show()
+    }
+
+    private fun serverRow(srv: DnsServer, checked: Boolean): View = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(px(20), px(6), px(20), px(6))
+        addView(
+            RadioButton(context).apply {
+                isChecked = checked
+                isClickable = false
+                isFocusable = false
+            }
+        )
+        val texts = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        texts.addView(
+            TextView(context).apply {
+                text = label(srv)
+                textSize = 17f
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            }
+        )
+        texts.addView(
+            TextView(context).apply {
+                text = srv.addresses
+                maxLines = 1
+                typeface = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+                setTextColor(getColor(R.color.md_on_surface_variant))
+                // Long addresses (e.g. OpenDNS) shrink instead of wrapping.
+                setAutoSizeTextTypeUniformWithConfiguration(10, 14, 1, TypedValue.COMPLEX_UNIT_SP)
+            },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(20))
+        )
+        addView(
+            texts,
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart =
+                    px(12)
+            }
+        )
     }
 
     private fun addServerDialog() {
@@ -313,14 +354,17 @@ class MainActivity : Activity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.dlg_delete_title, s.name))
             .setPositiveButton(R.string.btn_delete) { _, _ ->
+                val wasActive = prefs.current().name == s.name
                 prefs.custom = prefs.custom.filter { it.name != s.name }
-                selectServer(DnsServer.PRESETS[0].name)
+                if (wasActive) selectServer(DnsServer.PRESETS[0].name)
+                pickServer()
             }
-            .setNegativeButton(android.R.string.cancel, null)
+            .setNegativeButton(android.R.string.cancel) { _, _ -> pickServer() }
             .show()
     }
 
     companion object {
+        private const val STAR = "★"
         private const val REQ_VPN = 1
         private const val REQ_NOTIFY = 2
     }

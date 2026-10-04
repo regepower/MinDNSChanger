@@ -58,7 +58,8 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_SHOW_SYSTEM, false)
         set(v) = sp.edit().putBoolean(KEY_SHOW_SYSTEM, v).apply()
 
-    fun servers(): List<DnsServer> = DnsServer.PRESETS + custom
+    /** Own entries first, then the presets. */
+    fun servers(): List<DnsServer> = custom + DnsServer.PRESETS
 
     fun current(): DnsServer = servers().firstOrNull { it.name == selected } ?: DnsServer.PRESETS[0]
 
