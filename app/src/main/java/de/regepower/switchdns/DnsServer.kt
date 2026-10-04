@@ -1,4 +1,4 @@
-package de.regepower.mindnschanger
+package de.regepower.switchdns
 
 /** One DNS entry: display name plus primary and optional secondary IPv4 address. */
 data class DnsServer(val name: String, val primary: String, val secondary: String?, val custom: Boolean) {

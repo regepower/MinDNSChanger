@@ -1,11 +1,10 @@
-package de.regepower.mindnschanger
+package de.regepower.switchdns
 
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
@@ -16,7 +15,6 @@ import android.text.Spanned
 import android.text.method.DigitsKeyListener
 import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
-import android.util.Log
 import android.view.Gravity
 import android.widget.Button
 import android.widget.EditText
@@ -26,7 +24,6 @@ import android.widget.ScrollView
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
-import java.io.IOException
 
 class MainActivity : Activity() {
     private lateinit var prefs: Prefs
@@ -42,6 +39,8 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
+        // Config files saved by the app before it was renamed.
+        AppShell.legacyNames = listOf("MinDNSChanger")
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -49,11 +48,7 @@ class MainActivity : Activity() {
         }
 
         content.addView(
-            appHeader(
-                iconButton(R.drawable.ic_save, getString(R.string.cfg_save)) { saveConfig() },
-                iconButton(R.drawable.ic_load, getString(R.string.cfg_load)) { loadConfig() },
-                iconButton(R.drawable.ic_help, getString(R.string.help)) { showHelp() }
-            ),
+            AppShell.header(this, prefs.sp),
             fullWidth()
         )
 
@@ -160,77 +155,18 @@ class MainActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
-        when (requestCode) {
-            REQ_VPN -> if (resultCode == RESULT_OK) {
+        if (requestCode == REQ_VPN) {
+            if (resultCode == RESULT_OK) {
                 DnsVpnService.start(this)
             } else {
-                toast(R.string.err_vpn_denied)
+                Toast.makeText(this, R.string.err_vpn_denied, Toast.LENGTH_SHORT).show()
             }
-            REQ_SAVE -> data?.data?.takeIf { resultCode == RESULT_OK }?.let { writeConfig(it) }
-            REQ_LOAD -> data?.data?.takeIf { resultCode == RESULT_OK }?.let { readConfig(it) }
-        }
-    }
-
-    private fun toast(res: Int) = Toast.makeText(this, res, Toast.LENGTH_SHORT).show()
-
-    private fun saveConfig() {
-        val i = Intent(Intent.ACTION_CREATE_DOCUMENT)
-            .addCategory(Intent.CATEGORY_OPENABLE)
-            .setType(ConfigIO.MIME)
-            .putExtra(Intent.EXTRA_TITLE, "${getString(R.string.app_name)}.json")
-        @Suppress("DEPRECATION")
-        startActivityForResult(i, REQ_SAVE)
-    }
-
-    private fun loadConfig() {
-        val i = Intent(Intent.ACTION_OPEN_DOCUMENT)
-            .addCategory(Intent.CATEGORY_OPENABLE)
-            .setType("*/*")
-            .putExtra(Intent.EXTRA_MIME_TYPES, arrayOf(ConfigIO.MIME, "text/plain", "application/octet-stream"))
-        @Suppress("DEPRECATION")
-        startActivityForResult(i, REQ_LOAD)
-    }
-
-    private fun writeConfig(uri: Uri) {
-        try {
-            contentResolver.openOutputStream(uri, "wt")?.use {
-                it.write(ConfigIO.toJson(prefs.sp, getString(R.string.app_name)).toByteArray())
-            }
-            toast(R.string.cfg_saved)
-        } catch (e: IOException) {
-            Log.w("MinDNS", "save config", e)
-            toast(R.string.cfg_error)
-        }
-    }
-
-    private fun readConfig(uri: Uri) {
-        val json = try {
-            contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
-        } catch (e: IOException) {
-            Log.w("MinDNS", "load config", e)
-            null
-        }
-        // Files saved before the rename carry the old app name.
-        val ok = json != null &&
-            (
-                ConfigIO.fromJson(prefs.sp, json, getString(R.string.app_name)) ||
-                    ConfigIO.fromJson(prefs.sp, json, OLD_NAME)
-                )
-        if (!ok) {
-            toast(R.string.cfg_invalid)
             return
         }
-        toast(R.string.cfg_loaded)
-        if (DnsVpnService.running) DnsVpnService.start(this)
-        recreate()
-    }
-
-    private fun showHelp() {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.help)
-            .setMessage(getText(R.string.help_text))
-            .setPositiveButton(R.string.help_ok, null)
-            .show()
+        AppShell.onResult(this, requestCode, resultCode, data, prefs.sp) {
+            if (DnsVpnService.running) DnsVpnService.start(this)
+            recreate()
+        }
     }
 
     /** Switch that stores [save] and re-applies the rules to a running service. */
@@ -385,10 +321,7 @@ class MainActivity : Activity() {
     }
 
     companion object {
-        private const val OLD_NAME = "MinDNSChanger"
         private const val REQ_VPN = 1
         private const val REQ_NOTIFY = 2
-        private const val REQ_SAVE = 3
-        private const val REQ_LOAD = 4
     }
 }

@@ -95,7 +95,7 @@ jobs:
 
       - uses: actions/upload-artifact@v6
         with:
-          name: MinDNSChanger-release
+          name: SwitchDNS-release
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 

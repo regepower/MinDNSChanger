@@ -1,4 +1,4 @@
-package de.regepower.mindnschanger
+package de.regepower.switchdns
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -280,8 +280,8 @@ class DnsVpnService : VpnService() {
         private const val TAG = "MinDNS"
         private const val CHANNEL = "vpn"
         private const val NOTIFICATION_ID = 1
-        const val ACTION_START = "de.regepower.mindnschanger.START"
-        const val ACTION_STOP = "de.regepower.mindnschanger.STOP"
+        const val ACTION_START = "de.regepower.switchdns.START"
+        const val ACTION_STOP = "de.regepower.switchdns.STOP"
 
         private val ADDRESSES = listOf(
             "172.31.255.253" to 30,

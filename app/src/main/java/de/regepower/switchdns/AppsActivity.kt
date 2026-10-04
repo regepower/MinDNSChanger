@@ -1,4 +1,4 @@
-package de.regepower.mindnschanger
+package de.regepower.switchdns
 
 import android.app.Activity
 import android.content.Intent

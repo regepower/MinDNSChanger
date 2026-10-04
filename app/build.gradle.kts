@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "de.regepower.mindnschanger"
+    namespace = "de.regepower.switchdns"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "de.regepower.mindnschanger"
+        applicationId = "de.regepower.switchdns"
         minSdk = 31
         targetSdk = 36
         versionCode = 1

@@ -1,10 +1,9 @@
-package de.regepower.mindnschanger
+package de.regepower.switchdns
 
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.util.TypedValue
-import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
@@ -76,19 +75,4 @@ internal fun Context.iconButton(icon: Int, desc: String, onClick: () -> Unit) = 
     contentDescription = desc
     tooltipText = desc
     setOnClickListener { onClick() }
-}
-
-/** App header used by all our apps: large bold app name, action icons on the right (save, load, help). */
-internal fun Context.appHeader(vararg actions: ImageButton) = LinearLayout(this).apply {
-    gravity = Gravity.CENTER_VERTICAL
-    addView(
-        TextView(context).apply {
-            text = getString(R.string.app_name)
-            textSize = 24f
-            setTypeface(typeface, Typeface.BOLD)
-            setTextColor(getColor(R.color.md_on_container))
-        },
-        LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-    )
-    actions.forEach { addView(it, LinearLayout.LayoutParams(px(44), px(44))) }
 }

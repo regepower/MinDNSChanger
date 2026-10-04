@@ -1,4 +1,4 @@
-package de.regepower.mindnschanger
+package de.regepower.switchdns
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
